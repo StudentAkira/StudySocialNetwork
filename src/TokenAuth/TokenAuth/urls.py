@@ -12,5 +12,5 @@ urlpatterns = [
     path('user/<int:pk>/', GetUserAPIView.as_view()),
 
     path('', include('social_django.urls')),
-
 ]
+urlpatterns+=static('/', document_root='')

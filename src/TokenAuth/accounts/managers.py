@@ -10,9 +10,9 @@ class CustomUserManager(BaseUserManager):
         if not password:
             password = ''.join([chr(i) for i in range(100, 120)])
         user.set_password(password)
+        user.save()
         from .models import Profile
         user_profile = Profile.objects.create(user=user)
-        user.save()
         return user
 
     def create_superuser(self, username, password, email=None):
