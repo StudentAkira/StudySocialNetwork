@@ -14,4 +14,3 @@ urlpatterns = [
     path('', include('social_django.urls')),
 
 ]
-urlpatterns+=static('/', document_root=MEDIA_ROOT)

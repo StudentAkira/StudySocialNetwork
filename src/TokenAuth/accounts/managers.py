@@ -3,16 +3,15 @@ from django.contrib.auth.base_user import BaseUserManager
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, username, password=None, email=None):
-        from .models import Profile
-        user_profile = Profile.objects.create()
         user = self.model(
                 username=username,
-                profile=user_profile,
                 )
 
         if not password:
             password = ''.join([chr(i) for i in range(100, 120)])
         user.set_password(password)
+        from .models import Profile
+        user_profile = Profile.objects.create(user=user)
         user.save()
         return user
 

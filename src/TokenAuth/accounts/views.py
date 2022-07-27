@@ -49,6 +49,4 @@ class CheckAuth(APIView):
 class GetUserAPIView(APIView):
     def get(self, request, pk):
         user = CustomUser.objects.get(id=pk)
-        profile = Profile.objects.get(user=user)
-        print(user, ' ', profile)
         return Response({'username': user.username})

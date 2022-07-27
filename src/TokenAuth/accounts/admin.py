@@ -6,7 +6,7 @@ from accounts.models import CustomUser, Profile
 
 
 class CustomUserAdmin(admin.ModelAdmin):
-    fields = [('username', 'password')]
+    fields = [('username', 'password', 'profile')]
 
 
 admin.site.unregister(Group)
