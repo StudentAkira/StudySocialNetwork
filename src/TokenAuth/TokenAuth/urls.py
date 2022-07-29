@@ -5,7 +5,7 @@ from accounts.views import TokenLogin, CheckAuth, GetUserAPIView, GetUsers, NewU
 from django.conf import settings
 
 urlpatterns = [
-    path('new/', NewUserAPIView.as_view()),
+    path('registrate/', NewUserAPIView.as_view()),
     path('admin/', admin.site.urls),
     path('auth/', include('djoser.urls.authtoken')),
     path('getToken/', TokenLogin.as_view()),

@@ -18,11 +18,17 @@ class TokenLogin(APIView):
                 'username': username,
                 'password': password,
             }
+            try:
+                user = CustomUser.objects.get(username=username)
+            except:
+                return Response({'status': 'error', 'message': 'No such user'})
+            if not user.check_password(password):
+                return Response({'status': 'error', 'message': 'Invalid password'})
             url = 'http://127.0.0.1:8000/auth/token/login'
             headers = {'Content-type': 'application/json'}
             response = requests.post(url, data=json.dumps(data), headers=headers)
             token = json.loads(response.text)['auth_token']
-            return redirect('http://127.0.0.1:3001/Page1?token='+token)
+            return redirect('http://127.0.0.1:3001/?token='+token)
 
         user = request.user
         username = request.user.username
@@ -32,11 +38,12 @@ class TokenLogin(APIView):
             'username': username,
             'password': password,
         }
+        print(data)
         url = 'http://127.0.0.1:8000/auth/token/login'
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(data), headers=headers)
         token = json.loads(response.text)['auth_token']
-        return redirect('http://127.0.0.1:3001/Page1?token='+token)
+        return redirect('http://127.0.0.1:3001/?token='+token)
 
 
 class CheckAuth(APIView):
@@ -72,13 +79,13 @@ class GetUsers(APIView):
 
 
 class NewUserAPIView(APIView):
-        def get(self, request):
-            for i in range(250):
-                data = {
-                    'username':'user'+str(i),
-                    'password':'user'+str(i)
-                }
-                new_user_serializer = CustomUserSerializer(data=data)
-                new_user_serializer.is_valid()
-                new_user = new_user_serializer.create(validated_data=new_user_serializer.validated_data)
-            return Response({'username': new_user.username})
+        def post(self, request):
+            data = {
+                'username':request.data['data']['username'],
+                'password':request.data['data']['password']
+            }
+            new_user_serializer = CustomUserSerializer(data=data)
+            new_user_serializer.is_valid()
+            print(new_user_serializer.errors)
+            new_user = new_user_serializer.create(validated_data=new_user_serializer.validated_data)
+            return Response({'username': 'nothing'})
