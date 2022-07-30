@@ -10,26 +10,6 @@ from .serializers import CustomUserSerializer, ProfileSerializer
 
 class TokenLogin(APIView):
     def get(self, request):
-        if not request.user.is_authenticated:
-            params = dict(request.query_params)
-            username = params['username'][0]
-            password = params['password'][0]
-            data = {
-                'username': username,
-                'password': password,
-            }
-            try:
-                user = CustomUser.objects.get(username=username)
-            except:
-                return Response({'status': 'error', 'message': 'No such user'})
-            if not user.check_password(password):
-                return Response({'status': 'error', 'message': 'Invalid password'})
-            url = 'http://127.0.0.1:8000/auth/token/login'
-            headers = {'Content-type': 'application/json'}
-            response = requests.post(url, data=json.dumps(data), headers=headers)
-            token = json.loads(response.text)['auth_token']
-            return redirect('http://127.0.0.1:3001/?token='+token)
-
         user = request.user
         username = request.user.username
         password = ''.join([chr(i) for i in range(100, 120)])
@@ -38,7 +18,6 @@ class TokenLogin(APIView):
             'username': username,
             'password': password,
         }
-        print(data)
         url = 'http://127.0.0.1:8000/auth/token/login'
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(data), headers=headers)
@@ -58,7 +37,19 @@ class GetUserAPIView(APIView):
     def get(self, request, pk):
         user = CustomUser.objects.get(id=pk)
         profile = Profile.objects.filter(user=user).get()
+        print(profile.avatar)
         return Response({'username': user.username, 'avatar':str(profile.avatar)})
+
+
+class ChangeAvatar(APIView):
+    def post(self, request):
+        print(request.data)
+        print(request.data['avatar'])
+        profile = request.user.profile
+        profile.avatar.delete()
+        profile.avatar = request.data['avatar']
+        profile.save()
+        return Response({'username': 'pass'})
 
 
 class GetUsers(APIView):
