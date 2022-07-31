@@ -3,15 +3,14 @@ from .managers import CustomUserManager
 from django.db import models
 
 
-class PostImage(models.Model):
-    image = models.ImageField(upload_to='posts/')
-    position = models.IntegerField(default=0)
+class CustomUser(AbstractUser):
+    objects = CustomUserManager()
 
 
 class Post(models.Model):
+    owner = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True)
     article = models.CharField(default='', max_length=255)
     text = models.CharField(default='', max_length=4095)
-    images = models.ForeignKey(PostImage, on_delete=models.CASCADE, null=True)
     likes = models.IntegerField(default=0)
 
     def add_like(self):
@@ -21,9 +20,10 @@ class Post(models.Model):
         self.likes -= 1
 
 
-class CustomUser(AbstractUser):
-    objects = CustomUserManager()
-    posts = models.ForeignKey(Post, on_delete=models.PROTECT, null=True)
+class PostImage(models.Model):
+    image = models.ImageField(upload_to='posts/')
+    position = models.IntegerField(default=0)
+    post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True)
 
 
 class Profile(models.Model):

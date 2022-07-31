@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import CustomUser, Profile
+from .models import CustomUser, Profile, Post
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -25,3 +25,18 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return Profile.objects.create(user_id=self.user_id,)
+
+
+class NewPostSerializer(serializers.ModelSerializer):
+    owner = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+    article = serializers.CharField(default='', max_length=255)
+    text = serializers.CharField(default='', max_length=4095)
+    images = serializers.PrimaryKeyRelatedField(many=True, read_only=True)
+    likes = serializers.IntegerField(default=0)
+
+    class Meta:
+        model = CustomUser
+        fields = ['owner','article','text', 'images', 'likes']
+
+    def create(self, validated_data):
+        return Post.objects.create(**validated_data)

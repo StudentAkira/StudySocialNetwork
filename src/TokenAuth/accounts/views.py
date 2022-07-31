@@ -3,10 +3,10 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from .models import CustomUser, Profile
+from .models import CustomUser, Profile, PostImage
 from rest_framework.response import Response
 import requests
-from .serializers import CustomUserSerializer, ProfileSerializer
+from .serializers import CustomUserSerializer, ProfileSerializer, NewPostSerializer
 
 class TokenLogin(APIView):
     def get(self, request):
@@ -80,3 +80,30 @@ class NewUserAPIView(APIView):
             print(new_user_serializer.errors)
             new_user = new_user_serializer.create(validated_data=new_user_serializer.validated_data)
             return Response({'username': 'nothing'})
+
+
+class CreateNewPostAPIView(APIView):
+    def post(self, request):
+        if not request.user.is_authenticated:
+            return Response({'User':'unauthorizer'})
+
+        data = request.data.dict()
+        print(data)
+        amount_of_images = len(data['ImageLocations'].split(','))-1
+        locations_of_images = data['ImageLocations'].split(',')
+        if amount_of_images > 5:
+            return Response({'error':'a lot of img'})
+
+        new_post_serializer = NewPostSerializer(data=data)
+        new_post_serializer.is_valid()
+        post = new_post_serializer.create(validated_data=new_post_serializer.validated_data)
+
+        for image_num in range(amount_of_images):
+            PostImage.objects.create(
+            image=data[f'image{image_num}'],
+            position=locations_of_images[image_num],
+            post=post
+            )
+        post.owner = request.user
+        post.save()
+        return Response({'data':'data','user':'post'})

@@ -17,7 +17,8 @@ DEBUG = True
 ALLOWED_HOSTS = []
 AUTH_USER_MODEL = 'accounts.CustomUser'
 CORS_ORIGIN_WHITELIST = [
-    'http://127.0.0.1:3001'
+    'http://127.0.0.1:3001',
+    'http://localhost:3001'
 ]
 LOGIN_REDIRECT_URL = '/getToken/'
 
