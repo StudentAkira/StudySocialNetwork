@@ -3,8 +3,14 @@ from .managers import CustomUserManager
 from django.db import models
 
 
+class Post(models.Model):
+    article = models.CharField(default='', max_length=255)
+    text = models.CharField(default='', max_length=4095)
+
+
 class CustomUser(AbstractUser):
     objects = CustomUserManager()
+    posts = models.ForeignKey(Post, on_delete=models.PROTECT)
 
 
 class Profile(models.Model):
