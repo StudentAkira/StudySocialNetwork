@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from django.conf.urls.static import static
-from accounts.views import TokenLogin, CheckAuth, GetUserAPIView, GetUsers, NewUserAPIView, ChangeAvatar, CreateNewPostAPIView
+from accounts.views import TokenLogin, CheckAuth, GetUserAPIView, GetUsers, NewUserAPIView, ChangeAvatar, CreateNewPostAPIView, GetPosts
 from django.conf import settings
 
 urlpatterns = [
@@ -14,10 +14,12 @@ urlpatterns = [
     path('users/<int:pk>', GetUsers.as_view()),
     path('changeavatar/', ChangeAvatar.as_view()),
 
+
     path('', include('social_django.urls')),
 
     path('__debug__/', include('debug_toolbar.urls')),
 
     path('test/', CreateNewPostAPIView.as_view()),
+    path('posts/<int:pk>', GetPosts.as_view()),
 ]
 urlpatterns+=static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

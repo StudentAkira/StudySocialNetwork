@@ -3,17 +3,19 @@ from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
-from .models import CustomUser, Profile, PostImage
+from .models import CustomUser, Profile, PostImage, Post
 from rest_framework.response import Response
 import requests
-from .serializers import CustomUserSerializer, ProfileSerializer, NewPostSerializer
+from .serializers import CustomUserSerializer, ProfileSerializer, PostSerializer
+
 
 class TokenLogin(APIView):
     def get(self, request):
         user = request.user
         username = request.user.username
-        password = ''.join([chr(i) for i in range(100, 120)])
+        password = ''.join([random.choice('abcdefghijklmnopqrstuvwxyz') for i in range(20)])
         user.set_password(password)
+        user.save()
         data = {
             'username': username,
             'password': password,
@@ -21,6 +23,7 @@ class TokenLogin(APIView):
         url = 'http://127.0.0.1:8000/auth/token/login'
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(data), headers=headers)
+        print(json.loads(response.text))
         token = json.loads(response.text)['auth_token']
         return redirect('http://127.0.0.1:3001/?token='+token)
 
@@ -90,20 +93,32 @@ class CreateNewPostAPIView(APIView):
         data = request.data.dict()
         print(data)
         amount_of_images = len(data['ImageLocations'].split(','))-1
+        print(amount_of_images)
         locations_of_images = data['ImageLocations'].split(',')
         if amount_of_images > 5:
             return Response({'error':'a lot of img'})
 
-        new_post_serializer = NewPostSerializer(data=data)
+        new_post_serializer = PostSerializer(data=data)
         new_post_serializer.is_valid()
         post = new_post_serializer.create(validated_data=new_post_serializer.validated_data)
-
-        for image_num in range(amount_of_images):
-            PostImage.objects.create(
-            image=data[f'image{image_num}'],
-            position=locations_of_images[image_num],
-            post=post
-            )
         post.owner = request.user
         post.save()
+
+        for image_index in range(amount_of_images):
+            PostImage.objects.create(
+                image=data[f'image{image_index}'],
+                position=locations_of_images[image_index],
+                post=post,
+            )
+
         return Response({'data':'data','user':'post'})
+
+
+class GetPosts(APIView):
+    def get(self, request, pk):
+        posts_db = Post.objects.prefetch_related('postimage_set').all()
+        print(list(posts_db))
+        print(type(list(posts_db)[0]))
+        for post in posts_db:
+            print(post._prefetched_objects_cache)
+        return Response({'test':'test'})
