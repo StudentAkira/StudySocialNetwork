@@ -6,7 +6,7 @@ from rest_framework.views import APIView
 from .models import CustomUser, Profile, PostImage, Post
 from rest_framework.response import Response
 import requests
-from .serializers import CustomUserSerializer, ProfileSerializer, PostSerializer
+from .serializers import CustomUserSerializer, ProfileSerializer, PostSerializer, PostImageSerializer
 
 
 class TokenLogin(APIView):
@@ -36,14 +36,6 @@ class CheckAuth(APIView):
         return Response({'userId': userId})
 
 
-class GetUserAPIView(APIView):
-    def get(self, request, pk):
-        user = CustomUser.objects.get(id=pk)
-        profile = Profile.objects.filter(user=user).get()
-        print(profile.avatar)
-        return Response({'username': user.username, 'avatar':str(profile.avatar)})
-
-
 class ChangeAvatar(APIView):
     def post(self, request):
         print(request.data)
@@ -53,23 +45,6 @@ class ChangeAvatar(APIView):
         profile.avatar = request.data['avatar']
         profile.save()
         return Response({'username': 'pass'})
-
-
-class GetUsers(APIView):
-    def get(self, request, pk):
-        users_db = list(CustomUser.objects.select_related('profile').all())
-        paginator = Paginator(users_db, 20)
-        pagenumber = pk
-        if pagenumber > len(paginator.page_range):
-            pagenumber = len(paginator.page_range)
-        paginated_users = paginator.get_page(pagenumber)
-
-        usersData = []
-        for i in range(len(list(paginated_users))):
-            user_serializer = CustomUserSerializer(paginated_users[i])
-            profile_serializer = ProfileSerializer(paginated_users[i].profile)
-            usersData += [[user_serializer.data, profile_serializer.data]]
-        return Response({'UsersData': usersData, 'AmountOfUsers': len(users_db)})
 
 
 class NewUserAPIView(APIView):
@@ -95,7 +70,7 @@ class CreateNewPostAPIView(APIView):
         amount_of_images = len(data['ImageLocations'].split(','))-1
         print(amount_of_images)
         locations_of_images = data['ImageLocations'].split(',')
-        if amount_of_images > 5:
+        if amount_of_images > 4:
             return Response({'error':'a lot of img'})
 
         new_post_serializer = PostSerializer(data=data)
@@ -114,11 +89,61 @@ class CreateNewPostAPIView(APIView):
         return Response({'data':'data','user':'post'})
 
 
+class GetPostAPIView(APIView):
+    def get(self, request, pk):
+        images = []
+        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        for image_index in range(len(post._prefetched_objects_cache['postimage_set'])):
+            images += [[
+                        str(post._prefetched_objects_cache['postimage_set'][image_index].image),
+                        str(post._prefetched_objects_cache['postimage_set'][image_index].position)
+                      ]]
+
+        print(images)
+        post_serializer = PostSerializer(post)
+        return Response({'images': images})
+
+
 class GetPosts(APIView):
     def get(self, request, pk):
-        posts_db = Post.objects.prefetch_related('postimage_set').all()
-        print(list(posts_db))
-        print(type(list(posts_db)[0]))
-        for post in posts_db:
-            print(post._prefetched_objects_cache)
-        return Response({'test':'test'})
+        posts_db = list(Post.objects.prefetch_related('postimage_set').all())
+        paginator = Paginator(posts_db, 20)
+        pagenumber = pk
+        if pagenumber > len(paginator.page_range):
+            pagenumber = len(paginator.page_range)
+        paginated_posts = paginator.get_page(pagenumber)
+
+        posts = []
+        for post_index in range(len(list(paginated_posts))):
+            post_serializer = PostSerializer(paginated_posts[post_index])
+            posts += [[post_serializer.data, []]]
+            for image in paginated_posts[post_index]._prefetched_objects_cache['postimage_set']:
+                new_post_image_serializer = PostImageSerializer(image)
+                posts[post_index][1] += [new_post_image_serializer.data]
+
+        return Response({'PostsData':posts,'AmountOfPosts': len(posts_db)})
+
+
+class GetUserAPIView(APIView):
+    def get(self, request, pk):
+        user = CustomUser.objects.get(id=pk)
+        profile = Profile.objects.filter(user=user).get()
+        print(profile.avatar)
+        return Response({'username': user.username, 'avatar':str(profile.avatar)})
+
+
+class GetUsers(APIView):
+    def get(self, request, pk):
+        users_db = list(CustomUser.objects.select_related('profile').all())
+        paginator = Paginator(users_db, 20)
+        pagenumber = pk
+        if pagenumber > len(paginator.page_range):
+            pagenumber = len(paginator.page_range)
+        paginated_users = paginator.get_page(pagenumber)
+
+        usersData = []
+        for i in range(len(list(paginated_users))):
+            user_serializer = CustomUserSerializer(paginated_users[i])
+            profile_serializer = ProfileSerializer(paginated_users[i].profile)
+            usersData += [[user_serializer.data, profile_serializer.data]]
+        return Response({'UsersData': usersData, 'AmountOfUsers': len(users_db)})

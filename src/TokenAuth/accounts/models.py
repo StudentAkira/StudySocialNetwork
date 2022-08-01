@@ -23,7 +23,7 @@ class Post(models.Model):
 class PostImage(models.Model):
     image = models.ImageField(upload_to='posts/')
     position = models.IntegerField(default=0)
-    post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, null=True)
 
 
 class Profile(models.Model):

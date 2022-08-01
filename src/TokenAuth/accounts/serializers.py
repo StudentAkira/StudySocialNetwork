@@ -4,11 +4,10 @@ from .models import CustomUser, Profile, Post
 
 class CustomUserSerializer(serializers.ModelSerializer):
     username = serializers.CharField(min_length=4)
-    password = serializers.CharField(min_length=4)
 
     class Meta:
         model = CustomUser
-        fields = ['id','username', 'password']
+        fields = ['id','username']
 
     def create(self, validated_data):
         return CustomUser.objects.create_user(**validated_data)
@@ -35,7 +34,17 @@ class PostSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['owner','article','text','likes']
+        fields = ['id','owner','article','text','likes']
 
     def create(self, validated_data):
         return Post.objects.create(**validated_data)
+
+
+class PostImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField()
+    position = serializers.IntegerField(default=0)
+    post = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
+
+    class Meta:
+        model = CustomUser
+        fields = ['image','position','post']
