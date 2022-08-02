@@ -27,14 +27,13 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 
 class PostSerializer(serializers.ModelSerializer):
-    owner = serializers.PrimaryKeyRelatedField(many=False, read_only=True)
     article = serializers.CharField(default='', max_length=255)
     text = serializers.CharField(default='', max_length=4095)
     likes = serializers.IntegerField(default=0)
 
     class Meta:
         model = CustomUser
-        fields = ['id','owner','article','text','likes']
+        fields = ['id','article','text','likes']
 
     def create(self, validated_data):
         return Post.objects.create(**validated_data)

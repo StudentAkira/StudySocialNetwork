@@ -66,9 +66,7 @@ class CreateNewPostAPIView(APIView):
             return Response({'User':'unauthorizer'})
 
         data = request.data.dict()
-        print(data)
         amount_of_images = len(data['ImageLocations'].split(','))-1
-        print(amount_of_images)
         locations_of_images = data['ImageLocations'].split(',')
         if amount_of_images > 4:
             return Response({'error':'a lot of img'})
@@ -99,12 +97,33 @@ class GetPostAPIView(APIView):
                         str(post._prefetched_objects_cache['postimage_set'][image_index].position)
                       ]]
 
-        print(images)
+        OwnerData = ''
+        try :
+            owner = CustomUser.objects.select_related('profile').get(id=post.owner.id)
+
+            OwnerData = {
+                    'exists': True,
+                    'id': owner.id,
+                    'username':owner.username,
+                    'avatar':str(owner.profile.avatar),
+                    'rating':owner.profile.rating,
+            }
+        except:
+            OwnerData = {
+                    'exists': False,
+                    'id':owner.id,
+                    'username':'',
+                    'avatar':'',
+                    'rating':'',
+            }
         post_serializer = PostSerializer(post)
-        return Response({'images': images})
+        return Response({'OwnerData':OwnerData,
+                        'PostData': post_serializer.data,
+                        'images': images
+                        })
 
 
-class GetPosts(APIView):
+class GetPostsAPIView(APIView):
     def get(self, request, pk):
         posts_db = list(Post.objects.prefetch_related('postimage_set').all())
         paginator = Paginator(posts_db, 20)
