@@ -1,4 +1,4 @@
-import json, random
+import json, random, os
 from django.core.paginator import Paginator
 from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated
@@ -7,9 +7,9 @@ from .models import CustomUser, Profile, PostImage, Post
 from rest_framework.response import Response
 import requests
 from .serializers import CustomUserSerializer, ProfileSerializer, PostSerializer, PostImageSerializer
+from TokenAuth.settings import BASE_DIR, MEDIA_ROOT
 
-
-class TokenLogin(APIView):
+class TokenLoginAPIView(APIView):
     def get(self, request):
         user = request.user
         username = request.user.username
@@ -23,12 +23,11 @@ class TokenLogin(APIView):
         url = 'http://127.0.0.1:8000/auth/token/login'
         headers = {'Content-type': 'application/json'}
         response = requests.post(url, data=json.dumps(data), headers=headers)
-        print(json.loads(response.text))
         token = json.loads(response.text)['auth_token']
         return redirect('http://127.0.0.1:3001/?token='+token)
 
 
-class CheckAuth(APIView):
+class CheckAuthAPIView(APIView):
     def get(self, request):
         if not request.user.is_authenticated:
             return Response({'userId': -1})
@@ -36,7 +35,7 @@ class CheckAuth(APIView):
         return Response({'userId': userId})
 
 
-class ChangeAvatar(APIView):
+class ChangeAvatarAPIView(APIView):
     def post(self, request):
         print(request.data)
         print(request.data['avatar'])
@@ -83,8 +82,27 @@ class CreateNewPostAPIView(APIView):
                 position=locations_of_images[image_index],
                 post=post,
             )
-
+        #todo
         return Response({'data':'data','user':'post'})
+
+
+class EditPostAPIView(APIView):
+    def post(self, request, pk):
+        print(request.data)
+        if not request.user.is_authenticated:
+            return Response({'User':'unauthorizer'})
+
+        try:
+            post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+            if post.owner.id != request.user.id:
+                return Response({'error': 'u are not owner'})
+
+
+        except:
+            return Response({'error': 'No such post'})
+
+
+        return Response({'post':'dsds'})
 
 
 class GetPostAPIView(APIView):
@@ -100,7 +118,6 @@ class GetPostAPIView(APIView):
         OwnerData = ''
         try :
             owner = CustomUser.objects.select_related('profile').get(id=post.owner.id)
-
             OwnerData = {
                     'exists': True,
                     'id': owner.id,
@@ -151,7 +168,7 @@ class GetUserAPIView(APIView):
         return Response({'username': user.username, 'avatar':str(profile.avatar)})
 
 
-class GetUsers(APIView):
+class GetUsersAPIView(APIView):
     def get(self, request, pk):
         users_db = list(CustomUser.objects.select_related('profile').all())
         paginator = Paginator(users_db, 20)
@@ -166,3 +183,13 @@ class GetUsers(APIView):
             profile_serializer = ProfileSerializer(paginated_users[i].profile)
             usersData += [[user_serializer.data, profile_serializer.data]]
         return Response({'UsersData': usersData, 'AmountOfUsers': len(users_db)})
+
+
+class DeletePostAPIView(APIView):
+    def get(self, request, pk):
+        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        for image in post._prefetched_objects_cache['postimage_set']:
+            os.remove(MEDIA_ROOT+'/'+str(image.image))
+            image.delete()
+        post.delete()
+        return Response({'deleted':'deleted'})
