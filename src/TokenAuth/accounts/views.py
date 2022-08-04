@@ -76,7 +76,9 @@ class CreateNewPostAPIView(APIView):
         post.owner = request.user
         post.save()
 
+        print(data)
         for image_index in range(amount_of_images):
+            print(data[f'image{image_index}'])
             PostImage.objects.create(
                 image=data[f'image{image_index}'],
                 position=locations_of_images[image_index],
@@ -88,18 +90,33 @@ class CreateNewPostAPIView(APIView):
 
 class EditPostAPIView(APIView):
     def post(self, request, pk):
-        print(request.data)
+        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
         if not request.user.is_authenticated:
             return Response({'User':'unauthorizer'})
+        if post.owner.id != request.user.id:
+            return Response({'error': 'u are not owner'})
 
-        try:
-            post = Post.objects.prefetch_related('postimage_set').get(id=pk)
-            if post.owner.id != request.user.id:
-                return Response({'error': 'u are not owner'})
+        data = dict(request.data)
+        post.article = data['article'][0]
+        post.text = data['text'][0]
+        post.save()
+        PostImages = list(post._prefetched_objects_cache['postimage_set'].order_by('position'))
+        new_images_locations = data['ImageLocations'][0].split(',')
+        for PostImageInstance in PostImages:
+            PostImageInstance.position = new_images_locations[int(PostImages.index(PostImageInstance))]
+            PostImageInstance.save()
 
 
-        except:
-            return Response({'error': 'No such post'})
+
+        changed_images_indexes = data['changed_images_indexes'][0].split(',')
+        images_updated = True if changed_images_indexes != [''] else False
+        if images_updated:
+            for image_index in changed_images_indexes:
+                postimageinstance = PostImages[int(image_index)]
+                os.remove(MEDIA_ROOT+'/'+str(postimageinstance.image))
+                postimageinstance.image = data[f'image{image_index}'][0]
+                postimageinstance.save()
+
 
 
         return Response({'post':'dsds'})
@@ -193,3 +210,10 @@ class DeletePostAPIView(APIView):
             image.delete()
         post.delete()
         return Response({'deleted':'deleted'})
+
+
+class Test(APIView):
+    def get(self, request, pk):
+        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        print(post._prefetched_objects_cache['postimage_set'].order_by('position'))
+        return Response({'post': 's'})

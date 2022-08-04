@@ -12,7 +12,8 @@ from accounts.views import (
     GetPostsAPIView,
     GetPostAPIView,
     EditPostAPIView,
-    DeletePostAPIView
+    DeletePostAPIView,
+    Test
     )
 from django.conf import settings
 
@@ -30,6 +31,7 @@ urlpatterns = [
     path('createpost/', CreateNewPostAPIView.as_view()),
     path('editpost/<int:pk>/', EditPostAPIView.as_view()),
     path('deletepost/<int:pk>/', DeletePostAPIView.as_view()),
+    path('test/<int:pk>/', Test.as_view()),
 
     path('', include('social_django.urls')),
 
