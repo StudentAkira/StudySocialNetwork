@@ -90,16 +90,20 @@ class CreateNewPostAPIView(APIView):
 
 class EditPostAPIView(APIView):
     def post(self, request, pk):
-        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        print(dict(request.data))
         if not request.user.is_authenticated:
             return Response({'User':'unauthorizer'})
+        try:
+            post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        except:
+            return Response({'message':'no such post'})
         if post.owner.id != request.user.id:
             return Response({'error': 'u are not owner'})
-
         data = dict(request.data)
 
         post.text = data['text'][0]
         post.article = data['article'][0]
+        post.save()
 
         print(post.text)
         print(post.article)
@@ -112,18 +116,29 @@ class EditPostAPIView(APIView):
         image_order_numbers = data['images_order_numbers'][0].split(',')
 
 
-        for image_postition in new_image_positions:
-            ordered_postimage_instanses[new_image_positions.index(image_postition)].position = image_postition
-            ordered_postimage_instanses[new_image_positions.index(image_postition)].save()
+        for post_image_instanse in ordered_postimage_instanses:
+            post_image_instanse.position = new_image_positions[ordered_postimage_instanses.index(post_image_instanse)]
+            post_image_instanse.save()
 
-        post.save()
+        images_changed = True if image_order_numbers != [''] else False
+
+        if images_changed:
+            for image_order_number in image_order_numbers:
+                os.remove(MEDIA_ROOT+'/'+str(ordered_postimage_instanses[int(image_order_number)].image))
+                ordered_postimage_instanses[int(image_order_number)].image = data[image_order_number][0]
+                ordered_postimage_instanses[int(image_order_number)].save()
+
         return Response({'post':'dsds'})
+
 
 
 class GetPostAPIView(APIView):
     def get(self, request, pk):
         images = []
-        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        try:
+            post = Post.objects.prefetch_related('postimage_set').get(id=pk)
+        except:
+            return Response({'message':'no such post'})
         for image_index in range(len(post._prefetched_objects_cache['postimage_set'])):
             images += [[
                         str(post._prefetched_objects_cache['postimage_set'][image_index].image),
@@ -131,6 +146,7 @@ class GetPostAPIView(APIView):
                       ]]
 
         OwnerData = ''
+
         try :
             owner = CustomUser.objects.select_related('profile').get(id=post.owner.id)
             OwnerData = {
@@ -140,7 +156,9 @@ class GetPostAPIView(APIView):
                     'avatar':str(owner.profile.avatar),
                     'rating':owner.profile.rating,
             }
+
         except:
+
             OwnerData = {
                     'exists': False,
                     'id':owner.id,
