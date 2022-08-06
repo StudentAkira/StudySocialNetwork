@@ -97,26 +97,7 @@ class EditPostAPIView(APIView):
             return Response({'error': 'u are not owner'})
 
         data = dict(request.data)
-        post.article = data['article'][0]
-        post.text = data['text'][0]
-        post.save()
-        PostImages = list(post._prefetched_objects_cache['postimage_set'].order_by('position'))
-        new_images_locations = data['ImageLocations'][0].split(',')
-        for PostImageInstance in PostImages:
-            PostImageInstance.position = new_images_locations[int(PostImages.index(PostImageInstance))]
-            PostImageInstance.save()
-
-
-
-        changed_images_indexes = data['changed_images_indexes'][0].split(',')
-        images_updated = True if changed_images_indexes != [''] else False
-        if images_updated:
-            for image_index in changed_images_indexes:
-                postimageinstance = PostImages[int(image_index)]
-                os.remove(MEDIA_ROOT+'/'+str(postimageinstance.image))
-                postimageinstance.image = data[f'image{image_index}'][0]
-                postimageinstance.save()
-
+        print(data)
 
 
         return Response({'post':'dsds'})

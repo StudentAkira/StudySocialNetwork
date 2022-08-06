@@ -20,9 +20,8 @@ CORS_ORIGIN_WHITELIST = [
     'http://127.0.0.1:3001',
     'http://localhost:3001'
 ]
-LOGIN_REDIRECT_URL = '/getToken/'
 
-# Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -40,6 +39,7 @@ INSTALLED_APPS = [
     'djoser',
     'accounts',
 ]
+
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
@@ -129,6 +129,9 @@ AUTHENTICATION_BACKENDS = (
 )
 
 SCOPE = ['offline']
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/getToken/'
+SESSION_COOKIE_HTTPONLY = False
+
 
 SOCIAL_AUTH_VK_OAUTH2_KEY = '8210508'
 SOCIAL_AUTH_VK_OAUTH2_SECRET = 'edU3gRwxDig958p6n6yM'
