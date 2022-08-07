@@ -54,7 +54,6 @@ class NewUserAPIView(APIView):
             }
             new_user_serializer = CustomUserSerializer(data=data)
             new_user_serializer.is_valid()
-            print(new_user_serializer.errors)
             new_user = new_user_serializer.create(validated_data=new_user_serializer.validated_data)
             return Response({'username': 'nothing'})
 
@@ -62,7 +61,7 @@ class NewUserAPIView(APIView):
 class CreateNewPostAPIView(APIView):
     def post(self, request):
         if not request.user.is_authenticated:
-            return Response({'User':'unauthorizer'})
+            return Response({'error':'unauthorizer'})
 
         data = request.data.dict()
         amount_of_images = len(data['ImageLocations'].split(','))-1
@@ -70,27 +69,26 @@ class CreateNewPostAPIView(APIView):
         if amount_of_images > 4:
             return Response({'error':'a lot of img'})
 
-        new_post_serializer = PostSerializer(data=data)
-        new_post_serializer.is_valid()
-        post = new_post_serializer.create(validated_data=new_post_serializer.validated_data)
-        post.owner = request.user
-        post.save()
+        try:
+            new_post_serializer = PostSerializer(data=data)
+            new_post_serializer.is_valid()
+            post = new_post_serializer.create(validated_data=new_post_serializer.validated_data)
+            post.owner = request.user
+            post.save()
 
-        print(data)
-        for image_index in range(amount_of_images):
-            print(data[f'image{image_index}'])
-            PostImage.objects.create(
-                image=data[f'image{image_index}'],
-                position=locations_of_images[image_index],
-                post=post,
-            )
-        #todo
-        return Response({'data':'data','user':'post'})
+            for image_index in range(amount_of_images):
+                PostImage.objects.create(
+                    image=data[f'image{image_index}'],
+                    position=locations_of_images[image_index],
+                    post=post,
+                )
+            return Response({'status':'success', 'redirect_to':'/posts/post/'+str(post.id)+'/'})
+        except:
+            return Response({'status':'error','message':'oops something went wrong'})
 
 
 class EditPostAPIView(APIView):
     def post(self, request, pk):
-        print(dict(request.data))
         if not request.user.is_authenticated:
             return Response({'User':'unauthorizer'})
         try:
@@ -99,36 +97,33 @@ class EditPostAPIView(APIView):
             return Response({'message':'no such post'})
         if post.owner.id != request.user.id:
             return Response({'error': 'u are not owner'})
-        data = dict(request.data)
+        try:
+            data = dict(request.data)
 
-        post.text = data['text'][0]
-        post.article = data['article'][0]
-        post.save()
+            post.text = data['text'][0]
+            post.article = data['article'][0]
+            post.save()
 
-        print(post.text)
-        print(post.article)
-        print(list(post._prefetched_objects_cache['postimage_set'].order_by('position')))
-        print(data['images_order_numbers'][0].split(','))
-        print(data['image_postitions'][0].split(','))
-
-        ordered_postimage_instanses = list(post._prefetched_objects_cache['postimage_set'].order_by('position'))
-        new_image_positions = data['image_postitions'][0].split(',')
-        image_order_numbers = data['images_order_numbers'][0].split(',')
+            ordered_postimage_instanses = list(post._prefetched_objects_cache['postimage_set'].order_by('position'))
+            new_image_positions = data['image_postitions'][0].split(',')
+            image_order_numbers = data['images_order_numbers'][0].split(',')
 
 
-        for post_image_instanse in ordered_postimage_instanses:
-            post_image_instanse.position = new_image_positions[ordered_postimage_instanses.index(post_image_instanse)]
-            post_image_instanse.save()
+            for post_image_instanse in ordered_postimage_instanses:
+                post_image_instanse.position = new_image_positions[ordered_postimage_instanses.index(post_image_instanse)]
+                post_image_instanse.save()
 
-        images_changed = True if image_order_numbers != [''] else False
+            images_changed = True if image_order_numbers != [''] else False
 
-        if images_changed:
-            for image_order_number in image_order_numbers:
-                os.remove(MEDIA_ROOT+'/'+str(ordered_postimage_instanses[int(image_order_number)].image))
-                ordered_postimage_instanses[int(image_order_number)].image = data[image_order_number][0]
-                ordered_postimage_instanses[int(image_order_number)].save()
+            if images_changed:
+                for image_order_number in image_order_numbers:
+                    os.remove(MEDIA_ROOT+'/'+str(ordered_postimage_instanses[int(image_order_number)].image))
+                    ordered_postimage_instanses[int(image_order_number)].image = data[image_order_number][0]
+                    ordered_postimage_instanses[int(image_order_number)].save()
 
-        return Response({'post':'dsds'})
+            return Response({'status':'success', 'redirect_to':'/posts/post/'+str(post.id)+'/'})
+        except:
+            return Response({'status':'error','message':'oops something went wrong'})
 
 
 
@@ -198,7 +193,7 @@ class GetUserAPIView(APIView):
         user = CustomUser.objects.get(id=pk)
         profile = Profile.objects.filter(user=user).get()
         print(profile.avatar)
-        return Response({'username': user.username, 'avatar':str(profile.avatar)})
+        return Response({'username': user.username, 'avatar':str(profile.avatar), 'id':user.id})
 
 
 class GetUsersAPIView(APIView):
@@ -221,15 +216,40 @@ class GetUsersAPIView(APIView):
 class DeletePostAPIView(APIView):
     def get(self, request, pk):
         post = Post.objects.prefetch_related('postimage_set').get(id=pk)
-        for image in post._prefetched_objects_cache['postimage_set']:
-            os.remove(MEDIA_ROOT+'/'+str(image.image))
-            image.delete()
-        post.delete()
-        return Response({'deleted':'deleted'})
+        if not request.user.is_authenticated:
+            return Response({'error': 'unauthorized'})
+        if post.owner.id != request.user.id:
+            return Response({'error':'this is not yours post'})
+
+        try:
+            for image in post._prefetched_objects_cache['postimage_set']:
+                os.remove(MEDIA_ROOT+'/'+str(image.image))
+                image.delete()
+            post.delete()
+            return Response({'status':'success', 'redirect_to':'http://127.0.0.1:3001/me'})
+        except:
+            return Response({'status':'error', 'message':'somesing went wrong'})
+
+
+class LikeAPIView(APIView):
+    def get(self, request, pk):
+        if not request.user.is_authenticated:
+            return Response({'status':'error', 'message':'unauthorized'})
+        user = request.user
+        post_to_like = Post.objects.get(id=pk)
+        like = user.liked.filter(id=pk)
+        if like.exists():
+            user.liked.remove(post_to_like)
+            post_to_like.likes = CustomUser.objects.filter(liked=post_to_like).count()
+            post_to_like.save()
+            return Response({'status':'success', 'message':'like removed'})
+
+        user.liked.add(post_to_like)
+        post_to_like.likes = CustomUser.objects.filter(liked=post_to_like).count()
+        post_to_like.save()
+        return Response({'status':'success', 'message':'like added'})
 
 
 class Test(APIView):
-    def get(self, request, pk):
-        post = Post.objects.prefetch_related('postimage_set').get(id=pk)
-        print(post._prefetched_objects_cache['postimage_set'].order_by('position'))
-        return Response({'post': 's'})
+    def get(self, request):
+        return Response({'test': 'test'})

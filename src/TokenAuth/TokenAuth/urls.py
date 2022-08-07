@@ -13,6 +13,7 @@ from accounts.views import (
     GetPostAPIView,
     EditPostAPIView,
     DeletePostAPIView,
+    LikeAPIView,
     Test
     )
 from django.conf import settings
@@ -24,14 +25,15 @@ urlpatterns = [
     path('getToken/', TokenLoginAPIView.as_view()),
     path('me/', CheckAuthAPIView.as_view()),
     path('user/<int:pk>/', GetUserAPIView.as_view()),
-    path('users/<int:pk>', GetUsersAPIView.as_view()),
+    path('users/<int:pk>/', GetUsersAPIView.as_view()),
     path('post/<int:pk>/', GetPostAPIView.as_view()),
-    path('posts/<int:pk>', GetPostsAPIView.as_view()),
+    path('posts/<int:pk>/', GetPostsAPIView.as_view()),
     path('changeavatar/', ChangeAvatarAPIView.as_view()),
     path('createpost/', CreateNewPostAPIView.as_view()),
     path('editpost/<int:pk>/', EditPostAPIView.as_view()),
     path('deletepost/<int:pk>/', DeletePostAPIView.as_view()),
-    path('test/<int:pk>/', Test.as_view()),
+    path('like/<int:pk>/', LikeAPIView.as_view()),
+    path('test/', Test.as_view()),
 
     path('', include('social_django.urls')),
 
