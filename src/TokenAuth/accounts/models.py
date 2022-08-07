@@ -22,6 +22,11 @@ class Post(models.Model):
     text = models.CharField(default='', max_length=4095)
     likes = models.IntegerField(default=0)
 
+    def add_like(self):
+        self.likes += 1
+
+    def remove_like(self):
+        self.likes -= 1
 
 
 class PostImage(models.Model):

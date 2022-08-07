@@ -60,10 +60,12 @@ class NewUserAPIView(APIView):
 
 class CreateNewPostAPIView(APIView):
     def post(self, request):
+        #TODO
         if not request.user.is_authenticated:
             return Response({'error':'unauthorizer'})
 
         data = request.data.dict()
+        print(data)
         amount_of_images = len(data['ImageLocations'].split(','))-1
         locations_of_images = data['ImageLocations'].split(',')
         if amount_of_images > 4:
@@ -72,6 +74,7 @@ class CreateNewPostAPIView(APIView):
         try:
             new_post_serializer = PostSerializer(data=data)
             new_post_serializer.is_valid()
+            print(new_post_serializer.validated_data, ' ', new_post_serializer.errors)
             post = new_post_serializer.create(validated_data=new_post_serializer.validated_data)
             post.owner = request.user
             post.save()
@@ -153,7 +156,6 @@ class GetPostAPIView(APIView):
             }
 
         except:
-
             OwnerData = {
                     'exists': False,
                     'id':owner.id,
@@ -162,9 +164,12 @@ class GetPostAPIView(APIView):
                     'rating':'',
             }
         post_serializer = PostSerializer(post)
+        isliked = request.user.liked.filter(id=pk).exists() if request.user.is_authenticated else False
+        print(isliked, ' ', request.user.is_authenticated)
         return Response({'OwnerData':OwnerData,
                         'PostData': post_serializer.data,
-                        'images': images
+                        'images': images,
+                        'isliked': isliked,
                         })
 
 
@@ -240,13 +245,15 @@ class LikeAPIView(APIView):
         like = user.liked.filter(id=pk)
         if like.exists():
             user.liked.remove(post_to_like)
-            post_to_like.likes = CustomUser.objects.filter(liked=post_to_like).count()
+            post_to_like.remove_like()
             post_to_like.save()
+            user.save()
             return Response({'status':'success', 'message':'like removed'})
 
         user.liked.add(post_to_like)
-        post_to_like.likes = CustomUser.objects.filter(liked=post_to_like).count()
+        post_to_like.add_like()
         post_to_like.save()
+        user.save()
         return Response({'status':'success', 'message':'like added'})
 
 
